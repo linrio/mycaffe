@@ -1,3 +1,0 @@
-# cd /home/usr/lib64/atlas
-# ln -sv /usr/lib64/atlas/libtatlas.so /usr/lib64/atlas/libatlas.so
-#ln -sv /usr/lib64/atlas/libsatlas.so /usr/lib64/atlas/libcblas.so
