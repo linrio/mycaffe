@@ -9,7 +9,9 @@ s = '123 456\n789 012\n345 678'
 q = re.compile(r'^\d+')
 q.findall(s)
 #result is ['123']
-# 匹配一个位于开头的数字
+# 只匹配一行开头是数字的序列
 
 q = re.compile(r'^\d+',re.M)
 print q.findall(s)
+#result is ['123', '789', '345']
+#使用M选项，遍历行中开头是数字的序列
