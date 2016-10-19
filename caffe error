@@ -1,3 +1,4 @@
+CentOS 安装caffe
 参考资料： 
 http://www.tuicool.com/articles/uiuA3e Caffe 安装配置(CentOS + 无GPU) 
 http://blog.sina.com.cn/s/blog_990865340102vewt.html caffe 安装配置（CentOS 6.5 + 无GPU） 
@@ -405,3 +406,4 @@ python setup.py build_ext -i
 5 ImportError: No module named caffe 
 
 make pycaffe 
+from http://www.aiuxian.com/article/p-2410195.html
