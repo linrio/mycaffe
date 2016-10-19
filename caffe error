@@ -1,0 +1,407 @@
+参考资料： 
+http://www.tuicool.com/articles/uiuA3e Caffe 安装配置(CentOS + 无GPU) 
+http://blog.sina.com.cn/s/blog_990865340102vewt.html caffe 安装配置（CentOS 6.5 + 无GPU） 
+http://www.cnblogs.com/platero/p/3993877.html  Caffe + Ubuntu 14.04 64bit + CUDA 6.5 配置说明 
+http://blog.sciencenet.cn/blog-1583812-841855.html Ubuntu+CUDA6.5+Caffe安装配置汇总  
+
+
+Caffe（ http://caffe.berkeleyvision.org/ ）是一个清晰而高效的深度学习框架，其作者是博士毕业于UC Berkeley的贾扬清（http://daggerfs.com/ ），他目前在Google工作。Caffe是纯粹的C++/CUDA架构，支持命令行、Python和MATLAB接口；可以在CPU和GPU直接无缝切换. 
+
+
+3月11日补充：当时安装完，是可以执行caffe里面的相关示例，可以修改protobuf 和不同的网络配置，但是如果想用python编写程序，执行还是失败的。问题再最后补充。
+
+
+1 首先先鉴定机器是什么显卡： 
+
+lspci |grep VGA 
+00:02.0 VGA compatible controller: Intel Corporation Xeon E3-1200 v2/3rd Gen Core processor Graphics Controller (rev 09) 
+
+
+机器悲剧的没有NVIDIA 的显卡。 
+不过没有关系，还是可以跑起来的。 
+
+
+基本软件要求 
+
+CUDA library version 6.5 (recommended), 6.0, 5.5, or 5.0 and the latest driver version for CUDA 6 or 319.* for CUDA 5 (and NOT 331.*)
+BLAS (provided via ATLAS, MKL, or OpenBLAS).
+OpenCV (>= 2.4)
+Boost (>= 1.55, although only 1.55 and 1.56 are tested)
+glog, gflags, protobuf, leveldb, snappy, hdf5, lmdb
+For the Python wrapper 
+Python 2.7, numpy (>= 1.7), boost-provided boost.python
+
+
+2 CUDA 
+
+从http://developer.download.nvidia.com/compute/cuda/6_5/rel/installers/cuda_6.5.14_linux_64.run 下载cuda 
+sudo ./cuda_6.5.14_linux_64.run 
+不要安装驱动，否则安装会出错（driver installation is unable to locate the kernel source） 
+第一个选项选No 
+
+
+Install NVIDIA Accelerated Graphics Driver for Linux-x86_64 340.29? ((y)es/(n)o/(q)uit): n 
+Install the CUDA 6.5 Toolkit? ((y)es/(n)o/(q)uit): y 
+Enter Toolkit Location [ default is /usr/local/cuda-6.5 ]:  
+Do you want to install a symbolic link at /usr/local/cuda? ((y)es/(n)o/(q)uit): y 
+Install the CUDA 6.5 Samples? ((y)es/(n)o/(q)uit): y 
+Enter CUDA Samples Location [ default is /home/root1 ]:  
+Installing the CUDA Toolkit in /usr/local/cuda-6.5 ... 
+Missing recommended library: libGLU.so 
+Missing recommended library: libXmu.so 
+
+
+Installing the CUDA Samples in /home/root1 ... 
+Copying samples to /home/root1/NVIDIA_CUDA-6.5_Samples now... 
+Finished copying samples. 
+
+
+=========== 
+= Summary = 
+=========== 
+
+Driver:   Not Selected 
+Toolkit:  Installed in /usr/local/cuda-6.5 
+Samples:  Installed in /home/root1, but missing recommended libraries 
+
+
+Please make sure that 
+ -   PATH includes /usr/local/cuda-6.5/bin 
+ -   LD_LIBRARY_PATH includes /usr/local/cuda-6.5/lib64, or, add /usr/local/cuda-6.5/lib64 to /etc/ld.so.conf and run ldconfig as root 
+
+
+
+然后修改$PATH ，$LD_LIBRARY_PATH 
+
+vi /etc/profile
+#在文档最后，添加:
+export PATH="/usr/local/cuda-6.5/bin:$PATH"
+#保存，退出，然后运行：
+#source /etc/profile
+vi ~/.bash_profile ~/目录下打开.bash_profile
+$ export LD_LIBRARY_PATH=/usr/local/cuda-6.5/lib64:$LD_LIBRARY_PATH
+#source ~/.bash_profile
+
+
+3 安装一系列依赖项  
+
+
+sudo yum install boost-devel
+sudo yum install opencv-devel
+yum -y install freeglut
+yum install atlas-devel 
+yum install snappy-devel 
+
+
+glog, gflags, protobuf, leveldb, snappy, hdf5, lmdb 
+
+
+glog：   记录日志信息的c++库，编程使用方式与c++的stream操作类似 
+wget https://google-glog.googlecode.com/files/glog-0.3.3.tar.gz
+tar zxf glog-0.3.3.tar.gz
+cd glog-0.3.3
+./configure
+make
+sudo make install
+
+其他人有使用安装相对应的依赖库 
+sudo yum install gflags-devel protobuf-devel leveldb-devel snappy-devel hdf5-devel
+但是我安装的时候 还是很多失败了。所以列一下 各个的安装方法 
+
+gflags： 一套命令行参数解析工具 
+
+tar zxvf gflags-2.1.1.tar.gz && cd gflags-2.1.1
+mkdir build && cd build 
+export CXXFLAGS="-fPIC" && cmake .. && make VERBOSE=1
+make 
+sudo make install 
+
+protobuf：序列化协议， Google 公司内部的混合语言数据标准 
+第一次错误的方法：
+tar zxvf protobuf-cpp-3.0.0-alpha-1.tar.gz && cd protobuf-cpp-3.0.0-alpha-1&& ./configure && make
+make install
+
+
+
+第二次正确的方法： 
+
+wget https://github.com/google/protobuf/releases/download/v3.0.0-alpha-2/protobuf-python-3.0.0-alpha-2.tar.gz
+不过当时没有下载下来，所以我从windows机器上下载了，然后用rz -b上传的。 之前不带-b参数，导致一直解压失败。 
+然后进去按照readme里面的步骤 
+#./configure 
+#make 
+#make check 
+#make install
+
+记得要去python文件夹内 安装python所需要的模块
+#cd ./python 
+#python setup.py build 
+#python setup.py test 
+#python setup.py install
+
+安装完成，验证Linux命令 
+#protoc –version
+
+验证Python模块是否被正确安装 
+#python 
+>>>import google.protobuf 
+如果没有报错，说明安装正常。
+
+
+
+
+
+leveldb:google开源的一个key-value存储引擎库
+
+git clone https://github.com/google/leveldb.git
+make
+sudo cp -r include/leveldb /usr/local/include
+sudo cp libleveldb.so /usr/local/lib
+
+
+lmdb:  mmap'd database for OpenLDAP aka Lightning MDB 
+git clone git://gitorious.org/mdb/mdb.git
+cd mdb/libraries/liblmdb
+make && make install
+hdf5 :  Hierarchical Data Format 5 
+rpm -i hdf5-1.8.10-2.1.1.src.rpm
+tar -xjf hdf5-1.8.8.tar.bz2 
+./configure
+make && make install
+ccmake 
+
+wget http://www.cmake.org/files/v2.8/cmake-2.8.10.2.tar.gz
+tar -zxvf cmake-2.8.10.2.tar.gz  
+cd cmake-2.8.10.2 
+./bootstrap 
+
+4 OPENCV 
+
+Caffe作者默认你已经配置好了OpenCV环境，文档里没有说这一步。好在有人已经写好了配置OpenCV的脚本， https://github.com/jayrambhia/Install-OpenCV ，直接拿来用。 
+
+git clone https://github.com/jayrambhia/Install-OpenCV
+cd Install-OpenCV/RedHat
+sudo ./opencv_latest.sh
+
+（这一步我没有用到）如果脚本运行失败，则详细阅读 opencv_install.sh 的代码，然后手工敲入命令进行安装。 
+cd opencv-2.4.7
+sed  -i '/string(MD5/d' cmake/cl2cpp.cmake
+mkdir build
+cd build
+cmake -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local ..
+make -j 4
+sudo make install
+sudo sh -c 'echo "/usr/local/lib" > /etc/ld.so.conf.d/opencv.conf'
+sudo ldconfig
+/usr/local/cuda-6.5/samples/bin/x86_64/linux/release/Install-OpenCV/OpenCV/opencv-2.4.10/build/lib
+5 安装caffe 
+
+git clone https://github.com/BVLC/caffe.git
+make all
+看上去是不是应该就可以看到美好结局了。。。。。 
+
+  
+实际上不是的。。。 
+1 error while loading shared libraries: libprotobuf.so.10: cannot open shared object file: No such file or directory
+  
+解决方法： 将protobuf 库函数所在路径加入LD_LIBRARY_PATH 
+
+  
+2 /usr/bin/ld: cannot find -lhdf5_hl
+ 解决方法：尝试了修改各种路径无效后，采取建立软链接 
+cd /etc/ld.so.conf.d
+ sudo ln -sv /usr/local/weiwei/hdf5-1.8.8/hdf5/lib/libhdf5_hl.so /usr/lib/libhdf5_hl.so
+ 
+  
+并修改# vi Makefile.config  加入所要使用到的lib路径 
+
+  
+
+ 3/usr/bin/ld: cannot find -lcblas
+  
+BLAS CBLAS
+  vi Makefile.in  修改库路径
+ /usr/local/BLAS
+ /usr/local/CBLAS/lib
+ 
+ sudo ln -sv  /usr/lib64/atlas/libatlas.a /usr/lib/libatlas.a
+ sudo ln -sv  /usr/lib64/atlas/libcblas.a /usr/lib/libcblas.a
+  
+
+  
+4 boost库里面 boost_thread调用一直有问题 
+首先重装了boost库 
+
+  
+cd cd boost_1_57_0
+./bootstrap.sh
+./b2
+./b2 install
+echo "/usr/local/lib" >> /etc/ld.so.conf
+ldconfig
+看到成功提示
+ The Boost C++ Libraries were successfully built!
+  
+
+ The following directory should be added to compiler include paths:
+     /usr/local/boost_1_57_0
+ 
+ The following directory should be added to linker library paths:
+     /usr/local/boost_1_57_0/stage/lib
+  
+
+  
+但是还是一直有问题。一直报错 undefined reference to `boost::thread::join()'
+ 但是在boost库文件夹内建立的test文件编译运行都没问题。
+ 最后定位到之前第一次编译caffe 使用的boost版本有问题，刚刚重装boost库，于是caffe定位到的库和最后编译的版本不一致
+ 在caffe目录下make clean后 重新编译，ok 
+
+  
+
+PS：  BLAS库的选择 
+
+Basic Linear Algebra Subprograms (BLAS)用来优化矢量内积、矩阵矢量乘积、矩阵乘积等运算。在Intel处理器上运行的的BLAS库有两种：MKL（The Intel Math Kernel Library）和Automatically Tuned Linear Algebra Software(ATLAS)。 
+ATLAS* (Automatically Tuned Linear Algebra Software) 是比较流行的线性代数的计算函数库。它实现了绝大多数的BLAS 与LAPACK 的函数。ATLAS 的网站是： http://math-atlas.sourceforge.net/.* 
+
+
+Intel MKL库中有些函数使用了多线程并行优化, 用户可用环境变量OMP_NUM_THREADS来控制MKL运行时的线程数。在双核和多核处理器上，它能够为DGEMM函数带来2-5倍的性能提升。(通用矩阵计算（DGEMM ）是一个广为使用的数学函数。) 1）相比于ATLAS 函数库， Intel MKL 能够有明显性能提 2）Intel MKL BLAS 函数提供性能优越的多线程的支持  
+
+
+
+
+
+
+2) ScaLAPACK 是集群上求解线性方程的标准程序包。它是线性代数程序包（LAPACK）函数的一个子集。在64 位英特尔至强处理器的 32 节点集群上， 1）Intel MKL ScaLAPACK 性能明显超过 NETLIB ScaLAPACK。 2). 与使用 ATLAS* BLAS 与 NETLIB ScaLAPACK 代码相比，英特尔 MKL 的性能更为突出。 
+
+
+
+
+3). Intel MKL傅立叶变换函数已针对中等和大型问题进行高度优化。将Intel MKL 的性能与广为使用的FFT计算函数FFTW的性能进行了比较,表明：1)Intel MKL提供优异的傅立叶变换的性能。2) Intel MKL 为多处理器系统提供出色的可伸缩性。 3)在中等和大型转换方面，Intel MKL 比 FFTW 更出色。 
+
+
+MKL库中除了快速BLAS库外还包括LAPACK（Linear Algebra Package）, FFT等。ATLAS有单线程C BLAS库、单线程Fortran BLAS库、多线程C BLAS库、多线程Fortran BLAS库等几种；单线程与多线程库的区别在于使用单线程库时, ATLAS函数内部是串行的(相当于MKL中OMP_NUM_THREADS=1), 而使用多线程库时, ATLAS的部分函数中使用了多线程SMP并行(相当于MKL中OMP_NUM_THREADS=2)。 
+ 综合比较，MKL库比ATLAS库性能稍好一点 
+
+
+MKL的申请路径（非商业版） 
+https://registrationcenter.intel.com/RegCenter/NComForm.aspx?ProductID=1461&pass=yes 
+
+
+
+
+
+caffe网络python接口编写程序失败及解决方法记录。 
+caffe 提供了python 接口和matlab接口，要使用python接口，需要在caffe网络执行完之后，再执行 make pycaffe 
+
+编译python文件时： 
+错误1  ImportError: No module named yaml 
+需要安装   PyYAML 3.11     http://pyyaml.org/download/pyyaml/PyYAML-3.11.tar.gz 
+wget http://pyyaml.org/download/pyyaml/PyYAML-3.11.tar.gz 
+tar -zxvf PyYAML-3.11.tar.gz  
+python setup.py install 
+
+错误2 ImportError: No module named argparse 
+ easy_install argparse 
+输出为 
+Searching for argparse 
+Reading http://pypi.python.org/simple/argparse/ 
+Best match: argparse 1.3.0 
+Downloading https://pypi.python.org/packages/source/a/argparse/argparse-1.3.0.tar.gz#md5=9bcf7f612190885c8c85e30ba41db3c7 
+Processing argparse-1.3.0.tar.gz 
+Running argparse-1.3.0/setup.py -q bdist_egg --dist-dir /tmp/easy_install-AVn40q/argparse-1.3.0/egg-dist-tmp-O6YdRA 
+warning: no previously-included files matching '*.pyc' found anywhere in distribution 
+warning: no previously-included files matching '*.pyo' found anywhere in distribution 
+warning: no previously-included files matching '*.orig' found anywhere in distribution 
+warning: no previously-included files matching '*.rej' found anywhere in distribution 
+no previously-included directories found matching 'doc/_build' 
+no previously-included directories found matching 'env24' 
+no previously-included directories found matching 'env25' 
+no previously-included directories found matching 'env26' 
+no previously-included directories found matching 'env27' 
+zip_safe flag not set; analyzing archive contents... 
+Adding argparse 1.3.0 to easy-install.pth file 
+Installed /usr/lib/python2.6/site-packages/argparse-1.3.0-py2.6.egg 
+Processing dependencies for argparse 
+Finished processing dependencies for argparse 
+
+3  Python-2.7.8/Include/pyport.h:886:2: error: #error "LONG_BIT definition appears wrong for platform (bad gcc/glibc config?)." 
+In file included from /usr/include/numpy/ndarrayobject.h:68, 
+                 from /usr/include/numpy/arrayobject.h:14, 
+                 from python/caffe/_caffe.hpp:8, 
+                 from python/caffe/_caffe.cpp:12: 
+/usr/include/numpy/npy_common.h:79:2: error: #error Must use Python with unicode enabled. 
+make: *** [python/caffe/_caffe.so] Error 1 
+
+发现有Py_UNICODE_SIZE 的问题，提示 undefined symbol: PyUnicodeUCS4_AsEnco 。还有  error while loading shared libraries: libpython2.7.so.1.0: 
+原因是交叉编译python: pyconfig.h 中定义的 #define Py_UNICODE_SIZE 2 
+而交叉编译其他 python 库，比如 dbus-python, 默认的头文件路径包含： /usr/include/python2.6/pyconfig.h 定义的是#define Py_UNICODE_SIZE 4 
+所以会调用 UCS4 的函数，但是交叉版本的python里定义的是 UCS2 的函数 
+
+所以解决方法是 重新编译一次python  
+./configure --prefix=/usr/local/weiwei/python --enable-shared -enable-unicode=ucs4 
+make 
+make install 
+
+编译完之后，要对所有用到python的地方进行修改，还要做对应的软链接 
+ln -sf /usr/local/weiwei/python/bin/python /usr/bin/python 
+
+查到他的记录： 
+1. 安装pycaffe必须的一些依赖项： 
+$ sudo apt-get install python-numpy python-scipy python-matplotlib python-sklearn python-skimage python-h5py python-protobuf python-leveldb python-networkx python-nose python-pandas  
+
+
+python-gflags Cython ipython 
+$ sudo apt-get install protobuf-c-compiler protobuf-compiler 
+
+但是centos用不上这些指令，用yum也有很多是无法装。首先先给python装easy_istall 
+然后根据需要装 
+easy_install numpy 
+easy_install networkx 
+
+
+
+4 出现import caffe 失败， 直接没有输出，采用killall -9 python 来结束进程。 
+采用 gdb python 来进行调试。看到如下错误提示： 
+
+GNU gdb (GDB) Red Hat Enterprise Linux (7.2-60.el6) 
+Copyright (C) 2010 Free Software Foundation, Inc. 
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html> 
+This is free software: you are free to change and redistribute it. 
+There is NO WARRANTY, to the extent permitted by law.  Type "show copying" 
+and "show warranty" for details. 
+This GDB was configured as "x86_64-redhat-linux-gnu". 
+For bug reporting instructions, please see: 
+<http://www.gnu.org/software/gdb/bugs/>... 
+Reading symbols from /usr/local/weiwei/python/bin/python...done. 
+(gdb) set args a.py 
+(gdb) r 
+
+
+
+[Thread debugging using libthread_db enabled] 
+Traceback (most recent call last): 
+  File "a.py", line 17, in <module> 
+    import caffe 
+  File "../python/caffe/__init__.py", line 1, in <module> 
+    from .pycaffe import Net, SGDSolver 
+  File "../python/caffe/pycaffe.py", line 13, in <module> 
+    import caffe.io 
+  File "../python/caffe/io.py", line 2, in <module> 
+    import skimage.io 
+ImportError: No module named skimage.io 
+
+skimage没有安装，查到官网上的指令如下 
+easy_install -U scikit-image
+但是依赖PIL，于是先装PIL easy_install PIL  
+发现PIL装完之后，显示安装成功，但是编译程序时还是一直报错，还是找不到。可能是因为机器上的python版本比较多，也不知道为啥一安装就说已经安装，但是程序编译又找不到，所以只好再重新下源码尝试安装。 
+wget http://effbot.org/downloads/Imaging-1.1.7.tar.gz 
+python setup.py build_ext -i 
+然后重新安装skimage，下载skimage 后， pip install . 
+然后安装 easy_install Cython 
+
+4 安装完之后出现protobuf找不到的问题。 
+这个之前是安装过的。不过之前安装的是cpp版本，而且安装后没有装python里面对应python-protobuf 。 
+
+5 ImportError: No module named caffe 
+
+make pycaffe 
