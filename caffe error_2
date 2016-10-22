@@ -1,0 +1,20 @@
+I have cuda-5.5 and cuda-6.0 files in my cumputer. And I have installed cuda-6.0 only, however, I symbolic link the
+/usr/local/cuda-5.5/libcudart.so.5.5 to /usr/
+
+NVCC src/caffe/solvers/adagrad_solver.cu
+NVCC src/caffe/solvers/adadelta_solver.cu
+NVCC src/caffe/solvers/sgd_solver.cu
+NVCC src/caffe/solvers/rmsprop_solver.cu
+NVCC src/caffe/solvers/adam_solver.cu
+AR -o .build_release/lib/libcaffe.a
+LD -o .build_release/lib/libcaffe.so
+CXX tools/test_net.cpp
+CXX/LD -o .build_release/tools/test_net.bin
+/usr/bin/ld: warning: libcudart.so.5.5, needed by /usr/local/lib/libopencv_core.so, may conflict with libcudart.so.6.0
+CXX tools/upgrade_net_proto_binary.cpp
+CXX/LD -o .build_release/tools/upgrade_net_proto_binary.bin
+/usr/bin/ld: warning: libcudart.so.5.5, needed by /usr/local/lib/libopencv_core.so, may conflict with libcudart.so.6.0
+CXX tools/upgrade_net_proto_text.cpp
+CXX/LD -o .build_release/tools/upgrade_net_proto_text.bin
+/usr/bin/ld: warning: libcudart.so.5.5, needed by /usr/local/lib/libopencv_core.so, may conflict with libcudart.so.6.0
+
