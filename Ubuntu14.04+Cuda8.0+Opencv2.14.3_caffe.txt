@@ -1,0 +1,294 @@
+### Cuda 安装 Note
+系统：Ubuntu 14.04.5 x64
+Cuda: 8.0.44
+显卡：nvidia-GeForce 1070
+
+## 目的:因为需要重编译FlowNet(caffe)，DispNet,需要Cuda环境
+主要参考</br>
+[http://weibo.com/p/2304189db078090102vdvx]</br>
+[https://yangcha.github.io/GTX-1080/    ]</br>
+[www.cnblogs.com/platero/p/3993877.html]</br>
+
+##Steps:
+1. 重装系统 ubuntu 14.04.5
+1.1  ubuntu下 vi输入方向键会变成ABCD，这是ubuntu预装的是vim tiny版本，安装vim full版本即可解决。
+     先卸载vim-tiny：
+     $ sudo apt-get remove vim-common
+     再安装vim full：
+     $ sudo apt-get install vim
+     #modified by Lingfeng
+
+2. sudo apt-get install build-essential
+   sudo add-apt-repository ppa:graphics-drivers/ppa
+   sudo apt-get update
+  sudo apt-get install nvidia-367 [手动下载驱动，此处可能下载较慢] (icecubic 机器装的是nvidia-375)
+   sudo apt-get install mesa-common-dev
+   sudo apt-get install freeglut3-dev
+  sudo sh cuda_8.0.44_linux.run [其中，Install NVIDIA Accelerated Graphics Driver... 选择n,前面已经安装了驱动且可行]
+
+3. 配置Cuda环境变量
+3.1  1. $vi ~/.bashrc 按G 跳到最后一行，添加入下面这行：
+        export PATH=/usr/local/cuda-8.0/bin:$PATH
+        source 生效：
+        $source /etc/profile
+     2. $vi /etc/ld.so.conf
+        往文件里增加一行： /usr/local/cuda-8.0/lib64
+        $source ldconfig
+     #mmodified by Lingfeng
+
+4. 安装库：sudo apt-get install freeglut3-dev libx11-dev libxmu-dev libxi-dev libgl1-mesa-glx libglu1-mesa libglu1-mesa-dev
+4.1  上述安装会报错：详见: [http://github.com/linrio/git_R/issues/1]</br>
+     要先卸载2个库:
+     $sudo apt-get autoremove libcheese-gtk23 libcheese7
+     再:
+     $sudo apt-get install freeglut3-dev libx11-dev libxmu-dev libxi-dev libgl1-mesa-glx libglu1-mesa libglu1-mesa-dev
+   #modified by Lingfeng
+
+
+5.  make Cuda的example，此后nvcc, nvidia-smi, ./deviceQuery均已有效
+5.1  跑example的方法:
+     cd /usr/local/cuda-6.5/samples
+     sudo make
+     #modified by Lingfeng
+5.2  跑example 报错：
+     cuda usr/bin/ld:cannot find -lnvcuvid
+     collect2: error: ld returned 1 exit status
+     Makefile:381: recipe for target 'cudaDecodeGL' failed
+     解决方法：https://github.com/linrio/mycaffe/issues/6
+
+
+6. 安装python: sudo aot-get install python-dev python-pip
+7. 安装opencv 2.4.13 在opencv的github master tag 选不同的版本。
+   cd ~/opencv
+   mkdir build
+   cd build
+   cmake -D CMAKE_BUILD_TYPE=RELEASE \
+   -D CMAKE_INSTALL_PREFIX=/usr/local \
+   -D INSTALL_C_EXAMPLES=ON \
+   -D INSTALL_PYTHON_EXAMPLES=ON \
+   -D BUILD_EXAMPLES=ON \
+   -D WITH_CUDA=ON ..
+   
+   make -j 8
+   sudo make install
+
+
+8. 安装boost,配置环境
+
+9. 安装blas,atlas,配置环境
+9.1 安装 libatlas-base-dev
+    sudo apt-get install libatlas-base-dev
+
+10. copy cudnn include, lib内容
+
+11.1 操作：
+     下载cudnn.
+     tar -zxvf cudnn-8.0-linux-x64-v5.1.tgz
+     sudo cp cuda/include/cudnn.h /usr/local/cuda/include
+     sudo cp cuda/lib64/libcudnn* /usr/local/cuda/lib64
+     sudo chmod a+r /usr/local/cuda/include/cudnn.h /usr/local/cuda/lib64/libcudnn*
+
+12 安装anaconda2  [默认环境配置和默认安装位置]
+
+13 编译caffe
+13.1 修改Makefile.config
+     CUDNN = 1 去掉注释#
+     去掉anaconda的三行注释#
+     把${home}/anaconda 改成 ${home}/anaconda2
+
+14  ubuntu 图形界面进不去
+    重新安装nvidia驱动：
+    sudo service lightdm stop
+    sudo apt-get remove --purge nvidia-*
+    sudo apt-get install ubuntu-desktop
+    sudo rm /etc/X11/xorg.conf
+    echo 'nouveau' | sudo tee -a /etc/modules
+    cd进驱动所在文件夹
+    sudo sh NVIDIA-Linux-x86_64-346.59.run(之后要自己选择一下选项)
+    sudo reboot
+
+
+
+
+--------
+[错误版]
+
+1. 重装系统
+
+2. 安装Anaconda2,主要为了安装python2.x，似乎会附带很多其他有用的包，就直接安装anaconda2了[!!!不能提前安装Anaconda2，可能导致后面显卡驱动问题，登陆无法进入界面]
+
+3. 安装SSH-SERVER,安装Cuda需要退出GUI界面，因此用另一台机器用SSH-SERVER控制本机,方便操作
+
+4. 安装步骤参考上述链接，不过实际过程中没出现博客中的toolkit等安装失败问题
+
+5. 安装build-essential
+
+6. 设置环境变量
+
+---其中会出现的问题---
+a. 执行nvcc -V查看版本的时候会提示nvcc没有安装，其实就是之前装的NVIDIA-CUDA-Toolkit的编译器没有安装完整，根据提示安装就好：
+sudo apt-get install nvidia-cuda-toolkit
+
+b. 执行examples中的sudo ./deviceQuery的时候，会显示cuda driver version isinsufficient for cuda runtime，因为当前驱动版本比刚安装的cuda版本低，需要重装驱动： sudo apt-get purge nvidia*
+       sudo apt-get install nvidia-current
+       sudoreboot
+
+c. 执行example的sudo make 时，报错说找不到 -lnvcuvid
+
+e. 重装显卡驱动：
+
+第一步、Ctrl+Alt+F1进终端，log in之后，输入watch nvidia-smi，查看英伟达的显卡驱动还在不在。如果有显卡信息显示，转到第三步，如果没有转第二步。
+
+第二步、安装Nvidia显卡驱动，按部就班：
+
+sudo service lightdm stop
+sudo apt-get remove --purge nvidia-*
+sudo apt-get install ubuntu-desktop
+sudo rm /etc/X11/xorg.conf
+echo 'nouveau' | sudo tee -a /etc/modules
+cd进驱动所在文件夹
+sudo sh NVIDIA-Linux-x86_64-346.59.run(之后要自己选择一下选项)
+sudo reboot
+
+第三步：如果，桌面还是不能显示，则重装桌面。
+
+sudo apt-get install --reinstall ubuntu-desktop
+sudo apt-get install unity
+sudo apt-get purge nvidia* bumblebee*
+sudo apt-get install nvidia-prime
+sudo shutdown -r now
+
+DISPLAY=:0 unity
+dconf reset -f /org/compiz/
+unity
+setsid unity
+
+到这里基本都能解决问题。
+
+**************************************************************************************
+                        一些注意事项/报错及解决方法：
+**************************************************************************************
+
+4.
+icecubic@icecubic:~/icecubic$ sudo apt-get install freeglut3-dev build-essential libx11-dev libxmu-dev libxi-dev libgl1-mesa-glx libglu1-mesa libglu1-mesa-dev
+Reading package lists... Done
+Building dependency tree
+Reading state information... Done
+build-essential is already the newest version.
+freeglut3-dev is already the newest version.
+libglu1-mesa is already the newest version.
+libglu1-mesa set to manually installed.
+libglu1-mesa-dev is already the newest version.
+libglu1-mesa-dev set to manually installed.
+libx11-dev is already the newest version.
+libx11-dev set to manually installed.
+Some packages could not be installed. This may mean that you have
+requested an impossible situation or if you are using the unstable
+distribution that some required packages have not yet been created
+or been moved out of Incoming.
+The following information may help to resolve the situation:
+
+The following packages have unmet dependencies:
+ unity-control-center : Depends: libcheese-gtk23 (>= 3.4.0) but it is not going to be installed
+                        Depends: libcheese7 (>= 3.0.1) but it is not going to be installed
+E: Error, pkgProblemResolver::Resolve generated breaks, this may be caused by held packages.
+
+Fixed method:
+
+$ sudo apt-get autoremove libcheese-gtk23 libcheese7
+$ sudo apt-get install freeglut3-dev build-essential libx11-dev libxmu-dev libxi-dev libgl1-mesa-glx libglu1-mesa libglu1-mesa-dev
+
+**************************************************************************************************************************************
+
+5.
+```
+cuda usr/bin/ld:cannot find -lnvcuvid
+collect2: error: ld returned 1 exit status
+Makefile:381: recipe for target 'cudaDecodeGL' failed
+
+```
+解决了
+
+1.
+
+1.  `vi  ~/.bashrc `
+     adding following line into end:
+     **LD_LIBRARY_PATH=/usr/lib/nvidia-340:$LD_LIBRYARY_PATH**
+     check the LD_LIBRARY_PATH:
+     `echo $LD_LIBRARY_PATH: `
+
+2.  `$grep "nvidia-367" -r ./`
+      **将 UBUNTU_PKG_NAME = "nvidia-367" 换成UBUNTU_PKG_NAME = "nvidia-375"**
+
+       `$sudo sed -i "s/nvidia-367/nvidia-375/g" `grep nvidia-367 -rl .``
+       `$sudo make`
+```
+ -gencode arch=compute_50,code=sm_50 -gencode arch=compute_52,code=sm_52 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_60,code=compute_60 -o nvgraph_SemiRingSpmv nvgraph_SemiRingSpmv.o  -lnvgraph
+mkdir -p ../../bin/x86_64/linux/release
+cp nvgraph_SemiRingSpmv ../../bin/x86_64/linux/release
+make[1]: Leaving directory `/usr/local/cuda-8.0/samples/7_CUDALibraries/nvgraph_SemiRingSpMV'
+Finished building CUDA samples
+```
+
+全部编译完成后， 进入 samples/bin/x86_64/Linux/release, sudo下运行deviceQuery
+sudo ./deviceQuery
+
+```
+  Support host page-locked memory mapping:       Yes
+  Alignment requirement for Surfaces:            Yes
+  Device has ECC support:                        Disabled
+  Device supports Unified Addressing (UVA):      Yes
+  Device PCI Domain ID / Bus ID / location ID:   0 / 3 / 0
+  Compute Mode:
+     < Default (multiple host threads can use ::cudaSetDevice() with device simultaneously) >
+> Peer access from Graphics Device (GPU0) -> Graphics Device (GPU1) : Yes
+> Peer access from Graphics Device (GPU1) -> Graphics Device (GPU0) : Yes
+
+deviceQuery, CUDA Driver = CUDART, CUDA Driver Version = 8.0, CUDA Runtime Version = 8.0, NumDevs = 2, Device0 = Graphics Device, Device1 = Graphics Device
+Result = PASS
+```
+*******************************************************************************************************************
+
+5.2 test example
+
+  $5_../
+  $./nbody
+
+...
+	-hostmem          (stores simulation data in host memory)
+	-benchmark        (run benchmark to measure performance)
+	-numbodies=<N>    (number of bodies (>= 1) to run in simulation)
+	-device=<d>       (where d=0,1,2.... for the CUDA device to use)
+	-numdevices=<i>   (where i=(number of CUDA devices > 0) to use for simulation)
+	-compare          (compares simulation results running once on the default GPU and once on the CPU)
+	-cpu              (run n-body simulation on the CPU)
+	-tipsy=<file.bin> (load a tipsy model file for simulation)
+
+NOTE: The CUDA Samples are not meant for performance measurements. Results may vary when GPU Boost is enabled.
+
+> Windowed mode
+> Simulation data stored in video memory
+> Single precision floating point simulation
+> 1 Devices used for simulation
+> Compute 6.1 CUDA device: [Graphics Device]
+
+
+********************************************************************************************************************
+6.
+环境：
+ubuntu14.04.5
+nvidia 375.39
+问题描述：
+在编译caffe runtest时候，出现的问题
+/sbin/ldconfig.real: /usr/lib/nvidia-375/libEGL.so.1 不是符号连接
+/sbin/ldconfig.real: /usr/lib32/nvidia-375/libEGL.so.1 不是符号连接
+原因：
+系统找的是一个符号连接，而不是一个文件。这应该是个bug....
+解决方法：
+1.对这两个文件更名
+2.重新建立符号连接
+
+sudo mv /usr/lib/nvidia-375/libEGL.so.1 /usr/lib/nvidia-375/libEGL.so.1.org
+sudo mv /usr/lib32/nvidia-375/libEGL.so.1 /usr/lib32/nvidia-375/libEGL.so.1.org
+sudo ln -s /usr/lib/nvidia-375/libEGL.so.375.39 /usr/lib/nvidia-375/libEGL.so.1
+sudo ln -s /usr/lib32/nvidia-375/libEGL.so.375.39 /usr/lib32/nvidia-375/libEGL.so.1
